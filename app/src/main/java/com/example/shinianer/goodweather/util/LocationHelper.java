@@ -92,7 +92,12 @@ public class LocationHelper {
             return location;
         } else {
             SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(mContext);
-            Location storedLocation = new Gson().fromJson(sharedPreferences.getString("mLastLocation", null), Location.class);
+            Location storedLocation = null;
+            String strLastLocation = sharedPreferences.getString("mLastLocation", null);
+            if (strLastLocation != null) {
+                if (!strLastLocation.equals(""))
+                    storedLocation = new Gson().fromJson(strLastLocation, Location.class);
+            }
             if (storedLocation != null) {
                 Toast.makeText(mContext, "已读取之前保存的定位信息。", Toast.LENGTH_LONG).show();
                 return storedLocation;
