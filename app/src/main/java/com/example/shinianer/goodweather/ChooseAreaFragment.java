@@ -61,16 +61,18 @@ public class ChooseAreaFragment extends Fragment {
         return view;
     }
 
+
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+        queryProvinces();
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 if (currentLevel == LEVEL_PROVINCE) {
                     selectedProvince = provinceList.get(position);
                     if (selectedProvince.getProvinceName().equals("自动定位")) {
-                        Toast.makeText(getActivity(), "你选择了自动定位", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(getActivity(), "选择了自动定位。", Toast.LENGTH_SHORT).show();
                         if (getActivity() instanceof MainActivity) {
                             MainActivity activity = (MainActivity) getActivity();
                             activity.drawerLayout.closeDrawers();
@@ -78,7 +80,7 @@ public class ChooseAreaFragment extends Fragment {
                             activity.requestWeather("auto");
                         }
                     } else {
-                        Toast.makeText(getActivity(), "你选择了：" + selectedProvince.getProvinceName(), Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(getActivity(), "选择了：" + selectedProvince.getProvinceName(), Toast.LENGTH_SHORT).show();
                         queryCities();
                     }
                 } else if (currentLevel == LEVEL_CITY) {
@@ -86,7 +88,7 @@ public class ChooseAreaFragment extends Fragment {
                     queryCountries();
                 } else if (currentLevel == LEVEL_COUNTRY) {
                     String mCityId = countryList.get(position).getWeatherId();
-                    Toast.makeText(getActivity(), "手动选择了城市，CityID 为 " + mCityId, Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(getActivity(), "手动选择了城市，CityID 为 " + mCityId, Toast.LENGTH_SHORT).show();
                     if (getActivity() instanceof MainActivity) {
                         MainActivity activity = (MainActivity) getActivity();
                         activity.drawerLayout.closeDrawers();
@@ -96,18 +98,6 @@ public class ChooseAreaFragment extends Fragment {
                 }
             }
         });
-//        listView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
-//            @Override
-//                    public void onItemClick(AdapterView<?>parent,View view,int position,long id){
-//                if(currentLevel == LEVEL_PROVINCE){
-//                    selectedProvince = provinceList.get(position);
-//                    queryCities();
-//                }else if(currentLevel == LEVEL_CITY){
-//                    selectedCity = cityList.get(position);
-//                    queryCountries();
-//                }
-//            }
-//        });
         backButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -119,10 +109,11 @@ public class ChooseAreaFragment extends Fragment {
                 }
             }
         });
-        queryProvinces();
+
     }
 
     private void queryProvinces() {
+//        Toast.makeText(getActivity(), "Querying Provinces...", Toast.LENGTH_SHORT).show();
         titleText.setText("中国");
         backButton.setVisibility(View.GONE);
         provinceList = DataSupport.findAll(Province.class);
@@ -132,8 +123,7 @@ public class ChooseAreaFragment extends Fragment {
         provinceAuto.setId(0);
         provinceList.add(0, provinceAuto);
         dataList.clear();
-        //dataList.add("自动定位");
-        if (provinceList.size() > 0) {
+        if (provinceList.size() > 1) {
             for (Province province : provinceList) {
                 dataList.add(province.getProvinceName());
             }
@@ -147,6 +137,7 @@ public class ChooseAreaFragment extends Fragment {
     }
 
     private void queryCities() {
+//        Toast.makeText(getActivity(), "Querying Cities...", Toast.LENGTH_SHORT).show();
         titleText.setText(selectedProvince.getProvinceName());
         backButton.setVisibility(View.VISIBLE);
         cityList = DataSupport.where("provinceid=?", String.valueOf(selectedProvince.getId())).find(City.class);
@@ -166,6 +157,7 @@ public class ChooseAreaFragment extends Fragment {
     }
 
     private void queryCountries() {
+//        Toast.makeText(getActivity(), "Querying Countries...", Toast.LENGTH_SHORT).show();
         titleText.setText(selectedCity.getCityName());
         backButton.setVisibility(View.VISIBLE);
         countryList = DataSupport.where("cityid=?", String.valueOf(selectedCity.getId())).find(Country.class);
@@ -204,7 +196,7 @@ public class ChooseAreaFragment extends Fragment {
                         @Override
                         public void run() {
                             closeProgressDialog();
-                            if ("pronvince".equals(type)) {
+                            if ("province".equals(type)) {
                                 queryProvinces();
                             } else if ("city".equals(type)) {
                                 queryCities();
@@ -213,6 +205,8 @@ public class ChooseAreaFragment extends Fragment {
                             }
                         }
                     });
+                } else {
+                    Toast.makeText(getActivity(), "查询服务器 Response 为空。", Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -222,7 +216,7 @@ public class ChooseAreaFragment extends Fragment {
                     @Override
                     public void run() {
                         closeProgressDialog();
-                        Toast.makeText(getActivity(), "加载失败", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getActivity(), "查询服务器失败。", Toast.LENGTH_SHORT).show();
                     }
                 });
             }
@@ -232,7 +226,7 @@ public class ChooseAreaFragment extends Fragment {
     private void showProgressDialog() {
         if (progressDialog == null) {
             progressDialog = new ProgressDialog(getActivity());
-            progressDialog.setMessage("正在加载...");
+            progressDialog.setMessage("正在查询服务器...");
             progressDialog.setCanceledOnTouchOutside(false);
         }
         progressDialog.show();

@@ -79,6 +79,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        LocationHelper locationHelper = new LocationHelper(this);
+        locationHelper.updateLocation();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (Build.VERSION.SDK_INT >= 21) {
@@ -101,49 +114,12 @@ public class MainActivity extends AppCompatActivity {
         sportText = (TextView) findViewById(R.id.sport_text);
         drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         navButton = (Button) findViewById(R.id.nav_button);
-
         swipeRefresh = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh);
         swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
 
-        String cityID = "";
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-
-        String weatherString = prefs.getString("weather", null);
-        if (weatherString != null) {
-            //有缓存时直接解析天气数据
-            Weather weather = Utility.handleWeatherResponse(weatherString);
-            mCityId = weather.basic.cityId;
-            showWeatherInfo(weather);
-        } else {
-            //无缓存时去服务器查询天气
-
-            // 得到获取位置的方式（自动定位或用户手选）
-            mCityId = prefs.getString("mCityId", "auto");
-            if (mCityId.equals("auto")) {
-                // Automatic acquire user's location.
-
-            } else {
-                // Allow user to select city manually.
-                weatherLayout.setVisibility(View.INVISIBLE);
-                // mCityId = getIntent().getStringExtra("cityID");
-                // Save user's choice to settings cache.
-                SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit();
-                editor.putString("mCityId", mCityId);
-                editor.apply();
-
-            }
-            if (cityID != "") {
-                // 定位成功
-                mCityId = cityID;
-            } else {
-                // 定位失败，手工选择城市
-                weatherLayout.setVisibility(View.INVISIBLE);
-                // mCityId = getIntent().getStringExtra("mCityId");
-
-            }
-            // 使用 mWeatherId 查询天气，并刷新天气界面
-            requestWeather(mCityId);
-        }
+        mCityId = prefs.getString("mCityId", "auto");
+        requestWeather(mCityId);
 
         // 下拉刷新监听器
         swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
@@ -151,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
             public void onRefresh() {
                 SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
                 mCityId = prefs.getString("mCityId", "auto");
-                Toast.makeText(MainActivity.this, "正在刷新天气信息，当前城市 ID：" + mCityId, Toast.LENGTH_SHORT).show();
+//                Toast.makeText(MainActivity.this, "正在刷新天气信息，当前城市 ID：" + mCityId, Toast.LENGTH_SHORT).show();
                 requestWeather(mCityId);
             }
         });
@@ -182,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
             editor.putString("mCityId", weatherId);
             editor.apply();
             LocationHelper locationHelper = new LocationHelper(this);
-            Location location = locationHelper.getLocation();
+            Location location = locationHelper.getLastKnownLocation();
             if (location != null) {
                 double latitude = location.getLatitude();
                 double longitude = location.getLongitude();
@@ -191,7 +167,10 @@ public class MainActivity extends AppCompatActivity {
                 weatherId = prefs.getString("autoLocatedCityID", null);
                 Toast.makeText(this, "自动定位成功，已获取到城市 ID：" + weatherId, Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(this, "未能通过自动定位获取城市，请尝试手动选择城市。", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "未能定位，请手动选择城市。", Toast.LENGTH_LONG).show();
+                drawerLayout.openDrawer(GravityCompat.START);
+                swipeRefresh.setRefreshing(false);
+                return;
             }
         } else {
             SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit();
@@ -206,7 +185,7 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(MainActivity.this, "从接口获取天气信息失败，请重试。", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, "从接口获取天气信息失败，请重试。", Toast.LENGTH_LONG).show();
                         swipeRefresh.setRefreshing(false);
                     }
                 });
@@ -226,14 +205,14 @@ public class MainActivity extends AppCompatActivity {
                                 editor.putString("weather", responseText);
                                 editor.apply();
                                 showWeatherInfo(weather);
-                                Toast.makeText(MainActivity.this, "获取天气信息成功。", Toast.LENGTH_SHORT).show();
+//                                Toast.makeText(MainActivity.this, "获取天气信息成功。", Toast.LENGTH_SHORT).show();
                                 swipeRefresh.setRefreshing(false);
                             } else {
-                                Toast.makeText(MainActivity.this, "从接口获取天气信息失败，请重试。", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(MainActivity.this, "未能查询到天气信息…", Toast.LENGTH_SHORT).show();
                                 swipeRefresh.setRefreshing(false);
                             }
                         } else {
-                            Toast.makeText(MainActivity.this, "从接口获取天气信息失败，请重试。", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MainActivity.this, "未能查询到天气信息…", Toast.LENGTH_SHORT).show();
                             swipeRefresh.setRefreshing(false);
                         }
                     }
@@ -317,7 +296,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call call, IOException e) {
                 e.printStackTrace();
-                Toast.makeText(MainActivity.this, "错误：根据位置查询城市信息失败。", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "错误：根据位置查询城市信息失败。", Toast.LENGTH_LONG).show();
             }
 
             @Override
@@ -327,7 +306,7 @@ public class MainActivity extends AppCompatActivity {
                 SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit();
                 editor.putString("autoLocatedCityID", autoLocatedCityID);
                 editor.apply();
-                Toast.makeText(MainActivity.this, "定位成功。", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(MainActivity.this, "定位成功。", Toast.LENGTH_SHORT).show();
             }
         });
     }
