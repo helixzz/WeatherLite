@@ -1,5 +1,6 @@
 package com.example.shinianer.goodweather;
 
+import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -49,6 +50,8 @@ import java.text.SimpleDateFormat;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
+
+import static com.example.shinianer.goodweather.R.id.bing_pic_img;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -144,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // 初始化图片控件
-        bingPicImg = (ImageView) findViewById(R.id.bing_pic_img);
+        bingPicImg = (ImageView) findViewById(bing_pic_img);
 
         // 显示背景图片
         // 当心：每次旋转屏幕时都会调用 Activity onCreate 方法，导致只要旋转屏幕图片就刷新。
@@ -191,7 +194,7 @@ public class MainActivity extends AppCompatActivity {
                 SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
                 mCityId = prefs.getString("autoLocatedCityID", null);
                 if (mCityId != null) {
-                //    Toast.makeText(this, "已获取到城市 ID：" + mCityId, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "已获取到城市 ID：" + mCityId, Toast.LENGTH_SHORT).show();
                 }
                 else {
                     Toast.makeText(this, "查询城市 ID 失败，请检查网络。", Toast.LENGTH_LONG).show();
@@ -257,8 +260,8 @@ public class MainActivity extends AppCompatActivity {
     //处理并展示Weather实体类中的数据
     private void showWeatherInfo(Weather weather) {
         String cityName = weather.basic.cityName;
-        SimpleDateFormat updateTimeOriginal = new SimpleDateFormat("yyyy-MM-dd HH:MM");
-        SimpleDateFormat dateFormat = new SimpleDateFormat("HH:MM");
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat updateTimeOriginal = new SimpleDateFormat("yyyy-MM-dd HH:MM");
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat("HH:MM");
         String updateTime = "未知";
         try {
             updateTime = dateFormat.format(updateTimeOriginal.parse(weather.basic.update.updateTime));
@@ -327,8 +330,8 @@ public class MainActivity extends AppCompatActivity {
         Log.i("RandomPicture","Loading Unsplash random picture...");
         ImageView imageView = (ImageView) findViewById(R.id.bing_pic_img);
         final String unsplashUrl="http://source.unsplash.com/random";
-        boolean skipMemoryCache = true;
-        DiskCacheStrategy diskCacheStrategy = DiskCacheStrategy.NONE;
+        boolean skipMemoryCache;
+        DiskCacheStrategy diskCacheStrategy;
         if (useCache) {
             skipMemoryCache = false;
             diskCacheStrategy = DiskCacheStrategy.SOURCE;
@@ -360,8 +363,7 @@ public class MainActivity extends AppCompatActivity {
         String stringImage = prefs.getString(key, null);
         if (stringImage != null) {
             byte[] image=Base64.decode(stringImage,Base64.URL_SAFE);
-            Bitmap bitmap = BitmapFactory.decodeByteArray(image,0,image.length);
-            return bitmap;
+            return BitmapFactory.decodeByteArray(image,0,image.length);
         }
         return null;
     }

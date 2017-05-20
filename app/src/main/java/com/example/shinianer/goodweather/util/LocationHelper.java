@@ -10,6 +10,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.renderscript.Double2;
 import android.support.v4.app.ActivityCompat;
 import android.widget.Toast;
 
@@ -80,10 +81,18 @@ public class LocationHelper {
     }
 
     public void storeLastKnownLocation(Location location) {
-        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(mContext).edit();
-        String jsonLocation = new Gson().toJson(location);
-        editor.putString("mLastLocation", jsonLocation);
-        editor.apply();
+//        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(mContext).edit();
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(mContext);
+//        String jsonLocation = new Gson().toJson(location);
+//        editor.putString("mLastLocation", jsonLocation);
+//        editor.apply();
+        if (location == null) {
+        } else {
+            sharedPreferences.edit().putString("LOCATION_LAT", String.valueOf(location.getLatitude())).apply();
+            sharedPreferences.edit().putString("LOCATION_LON", String.valueOf(location.getLongitude())).apply();
+            sharedPreferences.edit().putString("LOCATION_PROVIDER", location.getProvider()).apply();
+        }
+        sharedPreferences.edit().apply();
     }
 
     public Location getLastKnownLocation() {
@@ -93,18 +102,27 @@ public class LocationHelper {
         } else {
             SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(mContext);
             Location storedLocation = null;
-            String strLastLocation = sharedPreferences.getString("mLastLocation", null);
-            if (strLastLocation != null) {
-                if (!strLastLocation.equals(""))
-                    storedLocation = new Gson().fromJson(strLastLocation, Location.class);
+//            String strLastLocation = sharedPreferences.getString("mLastLocation", null);
+//            if (strLastLocation != null) {
+//                if (!strLastLocation.equals(""))
+//                    storedLocation = new Gson().fromJson(strLastLocation, Location.class);
+//            }
+//            if (storedLocation != null) {
+//                Toast.makeText(mContext, "已读取之前保存的定位信息。", Toast.LENGTH_LONG).show();
+//                return storedLocation;
+//            } else {
+//                Toast.makeText(mContext, "未能读取之前保存的定位信息。", Toast.LENGTH_LONG).show();
+//                return null;
+//            }
+            String lat = sharedPreferences.getString("LOCATION_LAT", null);
+            String lon = sharedPreferences.getString("LOCATION_LON", null);
+            if (lat != null && lon != null) {
+                String provider = sharedPreferences.getString("LOCATION_PROVIDER", null);
+                storedLocation = new Location(provider);
+                storedLocation.setLatitude(Double.parseDouble(lat));
+                storedLocation.setLongitude(Double.parseDouble(lon));
             }
-            if (storedLocation != null) {
-                Toast.makeText(mContext, "已读取之前保存的定位信息。", Toast.LENGTH_LONG).show();
-                return storedLocation;
-            } else {
-                Toast.makeText(mContext, "未能读取之前保存的定位信息。", Toast.LENGTH_LONG).show();
-                return null;
-            }
+            return storedLocation;
         }
     }
 
