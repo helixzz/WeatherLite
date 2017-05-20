@@ -94,6 +94,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        // 在后台开始尝试定位，刷新定位信息。
         LocationHelper locationHelper = new LocationHelper(this);
         locationHelper.updateLocation();
     }
@@ -138,6 +139,10 @@ public class MainActivity extends AppCompatActivity {
         swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
+                // 在后台开始尝试定位，刷新定位信息。
+                LocationHelper locationHelper = new LocationHelper(MainActivity.this);
+                locationHelper.updateLocation();
+
                 SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
                 mCityId = prefs.getString("mCityId", "auto");
 //                Toast.makeText(MainActivity.this, "正在刷新天气信息，当前城市 ID：" + mCityId, Toast.LENGTH_SHORT).show();
@@ -158,6 +163,10 @@ public class MainActivity extends AppCompatActivity {
         else {
             loadUnsplashRandomPicture(false);
         }
+
+        // 在后台开始尝试定位，刷新定位信息。
+        LocationHelper locationHelper = new LocationHelper(this);
+        locationHelper.updateLocation();
 
 
         // 获取必应每日一图初始化
@@ -194,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
                 SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
                 mCityId = prefs.getString("autoLocatedCityID", null);
                 if (mCityId != null) {
-                    Toast.makeText(this, "已获取到城市 ID：" + mCityId, Toast.LENGTH_SHORT).show();
+                //    Toast.makeText(this, "已获取到城市 ID：" + mCityId, Toast.LENGTH_SHORT).show();
                 }
                 else {
                     Toast.makeText(this, "查询城市 ID 失败，请检查网络。", Toast.LENGTH_LONG).show();
