@@ -78,6 +78,7 @@ public class ChooseAreaFragment extends Fragment {
                             activity.drawerLayout.closeDrawers();
                             activity.swipeRefresh.setRefreshing(true);
                             activity.requestWeather("auto");
+                            activity.loadUnsplashRandomPicture(false);
                         }
                     } else {
 //                        Toast.makeText(getActivity(), "选择了：" + selectedProvince.getProvinceName(), Toast.LENGTH_SHORT).show();
@@ -94,6 +95,7 @@ public class ChooseAreaFragment extends Fragment {
                         activity.drawerLayout.closeDrawers();
                         activity.swipeRefresh.setRefreshing(true);
                         activity.requestWeather(mCityId);
+                        activity.loadUnsplashRandomPicture(false);
                     }
                 }
             }

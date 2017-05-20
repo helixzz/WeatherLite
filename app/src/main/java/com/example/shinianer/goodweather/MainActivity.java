@@ -1,7 +1,11 @@
 package com.example.shinianer.goodweather;
 
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -11,6 +15,8 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Base64;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -21,6 +27,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.resource.bitmap.GlideBitmapDrawable;
+import com.bumptech.glide.request.animation.GlideAnimation;
 import com.example.shinianer.goodweather.gson.Forecast;
 import com.example.shinianer.goodweather.gson.Weather;
 import com.example.shinianer.goodweather.util.HttpUtil;
@@ -31,6 +40,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
+import java.io.Console;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -56,7 +67,6 @@ public class MainActivity extends AppCompatActivity {
     private TextView sportText;
     private ImageView bingPicImg;
     private String mCityId;
-    private String mLocatingMethod;
     private Button navButton;
 
     public static String getCityIDByResponseText(String responseText) {
@@ -64,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
             Looper.prepare();
             try {
                 // Ugly Code.
-                String cityID = "";
+                String cityID;
                 JSONObject obj = new JSONObject(responseText);
                 JSONArray arr1 = obj.getJSONArray("HeWeather5");
                 JSONObject obj2 = arr1.getJSONObject(0);
@@ -129,16 +139,31 @@ public class MainActivity extends AppCompatActivity {
                 mCityId = prefs.getString("mCityId", "auto");
 //                Toast.makeText(MainActivity.this, "正在刷新天气信息，当前城市 ID：" + mCityId, Toast.LENGTH_SHORT).show();
                 requestWeather(mCityId);
+                loadUnsplashRandomPicture(false);
             }
         });
-        //获取必应每日一图初始化
+
+        // 初始化图片控件
         bingPicImg = (ImageView) findViewById(R.id.bing_pic_img);
-        String bingPic = prefs.getString("bing_pic", null);
+
+        // 显示背景图片
+        // 当心：每次旋转屏幕时都会调用 Activity onCreate 方法，导致只要旋转屏幕图片就刷新。
+        Bitmap bitmapImage = loadBitmapFromSharedPreferences("backgroundImageBase64");
+        if (bitmapImage != null) {
+            bingPicImg.setImageBitmap(bitmapImage);
+        }
+        else {
+            loadUnsplashRandomPicture(false);
+        }
+
+
+        // 获取必应每日一图初始化
+/*        String bingPic = prefs.getString("bing_pic", null);
         if (bingPic != null) {
             Glide.with(this).load(bingPic).into(bingPicImg);
         } else {
             loadBingPic();
-        }
+        }*/
 
         //调用openDrawer()打开滑动菜单；
         navButton.setOnClickListener(new View.OnClickListener() {
@@ -151,11 +176,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //根据天气id请求城市天气信息
-    public void requestWeather(String weatherId) {
+    public void requestWeather(String mCityId) {
 
-        if (weatherId.equals("auto")) {
+        if (mCityId.equals("auto")) {
             SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit();
-            editor.putString("mCityId", weatherId);
+            editor.putString("mCityId", mCityId);
             editor.apply();
             LocationHelper locationHelper = new LocationHelper(this);
             Location location = locationHelper.getLastKnownLocation();
@@ -164,8 +189,15 @@ public class MainActivity extends AppCompatActivity {
                 double longitude = location.getLongitude();
                 getCityInfoByLocation(longitude, latitude);
                 SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-                weatherId = prefs.getString("autoLocatedCityID", null);
-                Toast.makeText(this, "自动定位成功，已获取到城市 ID：" + weatherId, Toast.LENGTH_SHORT).show();
+                mCityId = prefs.getString("autoLocatedCityID", null);
+                if (mCityId != null) {
+                //    Toast.makeText(this, "已获取到城市 ID：" + mCityId, Toast.LENGTH_SHORT).show();
+                }
+                else {
+                    Toast.makeText(this, "查询城市 ID 失败，请检查网络。", Toast.LENGTH_LONG).show();
+                    swipeRefresh.setRefreshing(false);
+                    return;
+                }
             } else {
                 Toast.makeText(this, "未能定位，请手动选择城市。", Toast.LENGTH_LONG).show();
                 drawerLayout.openDrawer(GravityCompat.START);
@@ -174,10 +206,10 @@ public class MainActivity extends AppCompatActivity {
             }
         } else {
             SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit();
-            editor.putString("mCityId", weatherId);
+            editor.putString("mCityId", mCityId);
             editor.apply();
         }
-        String weatherUrl = "http://guolin.tech/api/weather?cityid=" + weatherId + "&key=beb135e90b2b44c280a7ecc5a310d98c";
+        String weatherUrl = "http://guolin.tech/api/weather?cityid=" + mCityId + "&key=beb135e90b2b44c280a7ecc5a310d98c";
         HttpUtil.sendOkHttpRequest(weatherUrl, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -189,7 +221,6 @@ public class MainActivity extends AppCompatActivity {
                         swipeRefresh.setRefreshing(false);
                     }
                 });
-                loadBingPic();
             }
 
             @Override
@@ -215,6 +246,7 @@ public class MainActivity extends AppCompatActivity {
                             Toast.makeText(MainActivity.this, "未能查询到天气信息…", Toast.LENGTH_SHORT).show();
                             swipeRefresh.setRefreshing(false);
                         }
+
                     }
                 });
             }
@@ -290,13 +322,56 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    // 获取来自 UnSplash 的随机图片，并存到 SharedPreferences
+    public void loadUnsplashRandomPicture(Boolean useCache) {
+        Log.i("RandomPicture","Loading Unsplash random picture...");
+        ImageView imageView = (ImageView) findViewById(R.id.bing_pic_img);
+        final String unsplashUrl="http://source.unsplash.com/random";
+        boolean skipMemoryCache = true;
+        DiskCacheStrategy diskCacheStrategy = DiskCacheStrategy.NONE;
+        if (useCache) {
+            skipMemoryCache = false;
+            diskCacheStrategy = DiskCacheStrategy.SOURCE;
+        }
+        else {
+            skipMemoryCache = true;
+            diskCacheStrategy = DiskCacheStrategy.NONE;
+        }
+        Glide.with(getApplicationContext())
+                .load(unsplashUrl).skipMemoryCache(skipMemoryCache)
+                .diskCacheStrategy(diskCacheStrategy)
+                .into(imageView);
+    }
+
+    // 存储 Bitmap 图片对象到 SharedPreferences
+    public void saveBitMapToSharedPreferences(Bitmap bitmap, String key){
+        ByteArrayOutputStream stream=new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+        byte[] image=stream.toByteArray();
+        String stringImage = Base64.encodeToString(image,Base64.URL_SAFE);
+        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit();
+        editor.putString(key, stringImage);
+        editor.apply();
+    }
+
+    // 从 SharedPreferences 取出图片并解析为 Bitmap
+    public Bitmap loadBitmapFromSharedPreferences(String key){
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String stringImage = prefs.getString(key, null);
+        if (stringImage != null) {
+            byte[] image=Base64.decode(stringImage,Base64.URL_SAFE);
+            Bitmap bitmap = BitmapFactory.decodeByteArray(image,0,image.length);
+            return bitmap;
+        }
+        return null;
+    }
+
     public void getCityInfoByLocation(final double lon, double lat) {
         String apiURL = "https://api.heweather.com/v5/search?city=" + lon + "," + lat + "&key=beb135e90b2b44c280a7ecc5a310d98c";
         HttpUtil.sendOkHttpRequest(apiURL, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 e.printStackTrace();
-                Toast.makeText(MainActivity.this, "错误：根据位置查询城市信息失败。", Toast.LENGTH_LONG).show();
             }
 
             @Override
@@ -306,7 +381,6 @@ public class MainActivity extends AppCompatActivity {
                 SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit();
                 editor.putString("autoLocatedCityID", autoLocatedCityID);
                 editor.apply();
-//                Toast.makeText(MainActivity.this, "定位成功。", Toast.LENGTH_SHORT).show();
             }
         });
     }
